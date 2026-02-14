@@ -43,8 +43,31 @@ class BaseVectorStore(ABC):
 
         Returns:
             List of document IDs that were added.
+
+        Raises:
+            ValueError: If metadatas/ids/embeddings length doesn't match documents.
         """
         raise NotImplementedError
+
+    def _validate_inputs(
+        self,
+        documents: list[str],
+        metadatas: list[dict[str, Any]] | None = None,
+        ids: list[str] | None = None,
+        embeddings: list[list[float]] | None = None,
+    ) -> None:
+        """Validate that input list lengths match."""
+        n = len(documents)
+        if metadatas is not None and len(metadatas) != n:
+            raise ValueError(
+                f"metadatas length ({len(metadatas)}) must match documents length ({n})"
+            )
+        if ids is not None and len(ids) != n:
+            raise ValueError(f"ids length ({len(ids)}) must match documents length ({n})")
+        if embeddings is not None and len(embeddings) != n:
+            raise ValueError(
+                f"embeddings length ({len(embeddings)}) must match documents length ({n})"
+            )
 
     @abstractmethod
     def search(

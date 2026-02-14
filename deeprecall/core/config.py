@@ -3,7 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from deeprecall.core.cache import BaseCache
+    from deeprecall.core.callbacks import BaseCallback
+    from deeprecall.core.guardrails import QueryBudget
+    from deeprecall.core.reranker import BaseReranker
 
 # Supported LLM backends (mirrors RLM's ClientBackend)
 BackendType = Literal[
@@ -38,6 +44,11 @@ class DeepRecallConfig:
         log_dir: Directory for JSONL trajectory logs. None disables logging.
         other_backends: Additional LLM backends for sub-calls.
         other_backend_kwargs: Kwargs for additional backends.
+        budget: Resource limits for queries (token, time, cost budgets).
+        callbacks: List of callback handlers for observability.
+        cache: Cache backend for query and search result caching.
+        cache_ttl: Time-to-live for cached results in seconds.
+        reranker: Post-retrieval reranker for improving search quality.
     """
 
     backend: BackendType = "openai"
@@ -51,6 +62,11 @@ class DeepRecallConfig:
     log_dir: str | None = None
     other_backends: list[BackendType] | None = None
     other_backend_kwargs: list[dict[str, Any]] | None = None
+    budget: QueryBudget | None = None
+    callbacks: list[BaseCallback] | None = None
+    cache: BaseCache | None = None
+    cache_ttl: int = 3600
+    reranker: BaseReranker | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -61,4 +77,6 @@ class DeepRecallConfig:
             "max_depth": self.max_depth,
             "top_k": self.top_k,
             "verbose": self.verbose,
+            "budget": self.budget.to_dict() if self.budget else None,
+            "cache_ttl": self.cache_ttl,
         }

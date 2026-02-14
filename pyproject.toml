@@ -3,7 +3,7 @@ name = "deeprecall"
 authors = [
     {name = "Pavan Kumar Kotha", email = "54451831+kothapavan1998@users.noreply.github.com"},
 ]
-version = "0.1.0"
+version = "0.2.0"
 description = "Recursive reasoning engine for AI agents and vector databases, powered by RLM."
 readme = "README.md"
 license = "MIT"
@@ -21,8 +21,6 @@ keywords = ["rlm", "rag", "recursive", "vector-database", "langchain", "llamaind
 
 dependencies = [
     "rlms>=0.1.0",
-    "openai>=2.14.0",
-    "rich>=13.0.0",
     "python-dotenv>=1.2.1",
     "click>=8.0.0",
 ]
@@ -40,8 +38,18 @@ pinecone = ["pinecone>=5.0.0"]
 langchain = ["langchain-core>=0.3.0"]
 llamaindex = ["llama-index-core>=0.12.0"]
 server = ["fastapi>=0.115.0", "uvicorn>=0.34.0"]
+openai = ["openai>=2.14.0"]
+rich = ["rich>=13.0.0"]
+rerank-cohere = ["cohere>=5.0.0"]
+rerank-cross-encoder = ["sentence-transformers>=3.0.0"]
+redis = ["redis>=5.0.0"]
+otel = [
+    "opentelemetry-api>=1.20.0",
+    "opentelemetry-sdk>=1.20.0",
+    "opentelemetry-exporter-otlp>=1.20.0",
+]
 all = [
-    "deeprecall[milvus,chroma,qdrant,pinecone,langchain,llamaindex,server]",
+    "deeprecall[openai,rich,milvus,chroma,qdrant,pinecone,langchain,llamaindex,server,rerank-cohere,rerank-cross-encoder,redis,otel]",
 ]
 
 [project.scripts]

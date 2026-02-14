@@ -66,6 +66,8 @@ class ChromaStore(BaseVectorStore):
         ids: list[str] | None = None,
         embeddings: list[list[float]] | None = None,
     ) -> list[str]:
+        self._validate_inputs(documents, metadatas, ids, embeddings)
+
         if ids is None:
             ids = [str(uuid.uuid4()) for _ in documents]
 
@@ -90,11 +92,10 @@ class ChromaStore(BaseVectorStore):
         top_k: int = 5,
         filters: dict[str, Any] | None = None,
     ) -> list[SearchResult]:
+        doc_count = self._collection.count()
         kwargs: dict[str, Any] = {
             "query_texts": [query],
-            "n_results": min(top_k, self._collection.count())
-            if self._collection.count() > 0
-            else top_k,
+            "n_results": min(top_k, doc_count) if doc_count > 0 else top_k,
         }
 
         if filters is not None:
@@ -119,7 +120,7 @@ class ChromaStore(BaseVectorStore):
                     SearchResult(
                         content=doc,
                         metadata=meta or {},
-                        score=1.0 - dist,  # ChromaDB returns distances; convert to similarity
+                        score=max(0.0, 1.0 - dist),  # ChromaDB distances -> similarity, clamped
                         id=rid,
                     )
                 )

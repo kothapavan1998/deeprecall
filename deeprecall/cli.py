@@ -12,10 +12,9 @@ load_dotenv()
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="deeprecall")
+@click.version_option(version="0.2.0", prog_name="deeprecall")
 def main() -> None:
     """DeepRecall -- Recursive reasoning over your data."""
-    pass
 
 
 @main.command()
@@ -31,6 +30,8 @@ def main() -> None:
 @click.option("--port", default=8000, type=int, help="Server port.")
 @click.option("--backend", default="openai", help="LLM backend.")
 @click.option("--model", default="gpt-4o-mini", help="LLM model name.")
+@click.option("--api-keys", default=None, help="Comma-separated API keys for auth.")
+@click.option("--rate-limit", default=None, type=int, help="Requests per minute per key.")
 def serve(
     vectorstore: str,
     collection: str,
@@ -39,6 +40,8 @@ def serve(
     port: int,
     backend: str,
     model: str,
+    api_keys: str | None,
+    rate_limit: int | None,
 ) -> None:
     """Start the OpenAI-compatible API server."""
     try:
@@ -51,10 +54,16 @@ def serve(
 
     from deeprecall.adapters.openai_server import create_app
 
-    app = create_app(engine)
+    keys_list = api_keys.split(",") if api_keys else None
+    app = create_app(engine, api_keys=keys_list, requests_per_minute=rate_limit)
+
     click.echo(f"Starting DeepRecall server on {host}:{port}")
     click.echo(f"  Vector store: {vectorstore} ({collection})")
     click.echo(f"  Backend: {backend}/{model}")
+    if keys_list:
+        click.echo(f"  Auth: {len(keys_list)} API key(s) configured")
+    if rate_limit:
+        click.echo(f"  Rate limit: {rate_limit} req/min")
     click.echo(f"  Docs: http://{host}:{port}/docs")
     uvicorn.run(app, host=host, port=port)
 
@@ -72,6 +81,9 @@ def serve(
 @click.option("--backend", default="openai", help="LLM backend.")
 @click.option("--model", default="gpt-4o-mini", help="LLM model name.")
 @click.option("--verbose", is_flag=True, help="Show detailed output.")
+@click.option("--max-searches", default=None, type=int, help="Max search calls budget.")
+@click.option("--max-tokens", default=None, type=int, help="Max token budget.")
+@click.option("--max-time", default=None, type=float, help="Max time budget (seconds).")
 def query(
     query_text: str,
     vectorstore: str,
@@ -80,15 +92,36 @@ def query(
     backend: str,
     model: str,
     verbose: bool,
+    max_searches: int | None,
+    max_tokens: int | None,
+    max_time: float | None,
 ) -> None:
     """Query documents with recursive reasoning."""
+    from deeprecall.core.guardrails import QueryBudget
+
+    budget = None
+    if any(v is not None for v in [max_searches, max_tokens, max_time]):
+        budget = QueryBudget(
+            max_search_calls=max_searches,
+            max_tokens=max_tokens,
+            max_time_seconds=max_time,
+        )
+
     engine = _build_engine(vectorstore, collection, persist_dir, backend, model, verbose=verbose)
-    result = engine.query(query_text)
+    result = engine.query(query_text, budget=budget)
 
     click.echo(f"\nAnswer: {result.answer}")
     click.echo(f"\nSources: {len(result.sources)}")
+    click.echo(f"Steps: {len(result.reasoning_trace)}")
     click.echo(f"Time: {result.execution_time:.2f}s")
     click.echo(f"LLM calls: {result.usage.total_calls}")
+
+    if result.confidence is not None:
+        click.echo(f"Confidence: {result.confidence:.2f}")
+    if result.error:
+        click.echo(f"Warning: {result.error}")
+    if result.budget_status and result.budget_status.get("budget_exceeded"):
+        click.echo(f"Budget: {result.budget_status.get('exceeded_reason')}")
 
 
 @main.command()
@@ -123,7 +156,7 @@ def ingest(
         ]
 
     for filepath in files:
-        with open(filepath) as f:
+        with open(filepath, encoding="utf-8") as f:
             content = f.read()
         documents.append(content)
         metadatas.append({"source": filepath, "filename": os.path.basename(filepath)})
@@ -137,9 +170,78 @@ def ingest(
     click.echo(f"Total documents: {store.count()}")
 
 
+@main.command()
+@click.option(
+    "--vectorstore",
+    type=click.Choice(["chroma", "milvus", "qdrant", "pinecone"]),
+    default="chroma",
+    help="Vector store backend.",
+)
+@click.option("--collection", default="deeprecall", help="Collection/index name.")
+@click.option("--persist-dir", default="./chroma_db", help="Persist directory (ChromaDB only).")
+@click.argument("doc_ids", nargs=-1, required=True)
+def delete(
+    vectorstore: str,
+    collection: str,
+    persist_dir: str,
+    doc_ids: tuple[str, ...],
+) -> None:
+    """Delete documents by ID from the vector store."""
+    store = _build_vectorstore(vectorstore, collection, persist_dir)
+    store.delete(ids=list(doc_ids))
+    click.echo(f"Deleted {len(doc_ids)} document(s). Remaining: {store.count()}")
+
+
+@main.command()
+@click.option("--path", default="deeprecall.toml", help="Path for the config file.")
+def init(path: str) -> None:
+    """Generate a starter config file."""
+    config_content = """\
+# DeepRecall Configuration
+# See: https://github.com/kothapavan1998/deeprecall
+
+[engine]
+backend = "openai"
+model = "gpt-4o-mini"
+max_iterations = 15
+top_k = 5
+verbose = false
+
+[vectorstore]
+type = "chroma"
+collection = "deeprecall"
+persist_dir = "./chroma_db"
+
+[budget]
+# Uncomment to enable budget limits
+# max_search_calls = 20
+# max_tokens = 50000
+# max_time_seconds = 60.0
+
+[server]
+host = "0.0.0.0"
+port = 8000
+# api_keys = ["key1", "key2"]
+# rate_limit = 60
+
+[cache]
+enabled = false
+type = "memory"    # "memory" or "disk"
+ttl = 3600
+max_size = 1000
+"""
+    if os.path.exists(path):
+        click.echo(f"Config file already exists: {path}")
+        return
+
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(config_content)
+    click.echo(f"Created config file: {path}")
+
+
 def _build_vectorstore(
     vectorstore: str, collection: str, persist_dir: str | None = None
-) -> BaseVectorStore:  # noqa: F821
+) -> object:
     """Build a vector store from CLI args."""
     if vectorstore == "chroma":
         from deeprecall.vectorstores.chroma import ChromaStore
@@ -168,7 +270,7 @@ def _build_engine(
     backend: str = "openai",
     model: str = "gpt-4o-mini",
     verbose: bool = False,
-) -> DeepRecallEngine:  # noqa: F821
+) -> object:
     from deeprecall.core.engine import DeepRecallEngine
 
     store = _build_vectorstore(vectorstore, collection, persist_dir)

@@ -83,22 +83,45 @@ Think step by step, plan, and execute immediately -- don't just say what you wil
 )
 
 
-def build_search_setup_code(server_port: int) -> str:
+def build_search_setup_code(
+    server_port: int,
+    max_search_calls: int | None = None,
+) -> str:
     """Build the Python setup code that injects search_db() into the REPL namespace.
 
     This creates a search_db() function that calls the local DeepRecall search
     server over HTTP. Uses only stdlib (urllib) so no extra deps needed in the REPL.
+    Optionally includes a search call counter for budget enforcement.
 
     Args:
         server_port: Port of the local search HTTP server.
+        max_search_calls: Optional limit on total search calls. None = unlimited.
 
     Returns:
         Python code string to execute in the REPL during setup.
     """
+    # Build the budget gating code
+    if max_search_calls is not None:
+        budget_code = f"""\
+_search_call_count = 0
+_max_search_calls = {max_search_calls}
+"""
+        budget_check = """\
+    global _search_call_count
+    _search_call_count += 1
+    if _search_call_count > _max_search_calls:
+        return [{"content": f"Search budget exceeded ({_max_search_calls} calls). """
+        budget_check += """Use the results you already have.", "metadata": {}, "score": 0.0, "id": ""}]
+"""
+    else:
+        budget_code = ""
+        budget_check = ""
+
     return textwrap.dedent(f"""\
 import urllib.request
 import json as _json
 
+{budget_code}
 def search_db(query, top_k=5):
     \"\"\"Search the vector database for relevant documents.
 
@@ -109,6 +132,7 @@ def search_db(query, top_k=5):
     Returns:
         List of dicts with keys: content, metadata, score, id.
     \"\"\"
+{budget_check}\
     _data = _json.dumps({{"query": query, "top_k": top_k}}).encode()
     _req = urllib.request.Request(
         "http://127.0.0.1:{server_port}/search",

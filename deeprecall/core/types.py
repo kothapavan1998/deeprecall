@@ -33,6 +33,14 @@ class Source:
     score: float = 0.0
     id: str = ""
 
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "content": self.content,
+            "metadata": self.metadata,
+            "score": self.score,
+            "id": self.id,
+        }
+
     @classmethod
     def from_search_result(cls, result: SearchResult) -> Source:
         return cls(
@@ -53,6 +61,7 @@ class ReasoningStep:
     output: str | None = None
     searches: list[dict[str, Any]] = field(default_factory=list)
     sub_llm_calls: int = 0
+    iteration_time: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -62,6 +71,7 @@ class ReasoningStep:
             "output": self.output,
             "searches": self.searches,
             "sub_llm_calls": self.sub_llm_calls,
+            "iteration_time": self.iteration_time,
         }
 
 
@@ -93,13 +103,19 @@ class DeepRecallResult:
     usage: UsageInfo = field(default_factory=UsageInfo)
     execution_time: float = 0.0
     query: str = ""
+    budget_status: dict[str, Any] | None = None
+    error: str | None = None
+    confidence: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "answer": self.answer,
-            "sources": [s.__dict__ for s in self.sources],
+            "sources": [s.to_dict() for s in self.sources],
             "reasoning_trace": [r.to_dict() for r in self.reasoning_trace],
             "usage": self.usage.to_dict(),
             "execution_time": self.execution_time,
             "query": self.query,
+            "budget_status": self.budget_status,
+            "error": self.error,
+            "confidence": self.confidence,
         }

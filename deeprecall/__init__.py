@@ -13,19 +13,42 @@ Usage:
     print(result.answer)
 """
 
+from deeprecall.core.async_engine import AsyncDeepRecallEngine
+from deeprecall.core.cache import DiskCache, InMemoryCache
+from deeprecall.core.cache_redis import RedisCache
+from deeprecall.core.callback_otel import OpenTelemetryCallback
+from deeprecall.core.callbacks import (
+    BaseCallback,
+    ConsoleCallback,
+    JSONLCallback,
+    UsageTrackingCallback,
+)
 from deeprecall.core.config import DeepRecallConfig
 from deeprecall.core.engine import DeepRecallEngine
+from deeprecall.core.guardrails import QueryBudget
 from deeprecall.core.types import DeepRecallResult, SearchResult, Source
 
-# Convenience alias
+# Convenience aliases
 DeepRecall = DeepRecallEngine
+AsyncDeepRecall = AsyncDeepRecallEngine
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 __all__ = [
+    "AsyncDeepRecall",
+    "AsyncDeepRecallEngine",
+    "BaseCallback",
+    "ConsoleCallback",
     "DeepRecall",
-    "DeepRecallEngine",
     "DeepRecallConfig",
+    "DeepRecallEngine",
     "DeepRecallResult",
+    "DiskCache",
+    "InMemoryCache",
+    "JSONLCallback",
+    "OpenTelemetryCallback",
+    "QueryBudget",
+    "RedisCache",
     "SearchResult",
     "Source",
+    "UsageTrackingCallback",
 ]

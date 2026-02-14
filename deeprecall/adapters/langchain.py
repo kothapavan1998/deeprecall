@@ -128,12 +128,18 @@ class DeepRecallChatModel(BaseChatModel):
         run_manager: CallbackManagerForLLMRun | None = None,
         **kwargs: Any,
     ) -> ChatResult:
-        # Extract the last user message as the query
+        # Extract the last human/user message as the query
         query = ""
         for msg in reversed(messages):
-            if hasattr(msg, "content") and msg.content:
+            if msg.type == "human" and msg.content:
                 query = str(msg.content)
                 break
+        # Fallback: take any message with content if no human message found
+        if not query:
+            for msg in reversed(messages):
+                if hasattr(msg, "content") and msg.content:
+                    query = str(msg.content)
+                    break
 
         if not query:
             raise ValueError("No message content found in input messages.")
@@ -144,7 +150,7 @@ class DeepRecallChatModel(BaseChatModel):
             message=AIMessage(
                 content=result.answer,
                 additional_kwargs={
-                    "sources": [s.__dict__ for s in result.sources],
+                    "sources": [s.to_dict() for s in result.sources],
                     "execution_time": result.execution_time,
                     "usage": result.usage.to_dict(),
                 },

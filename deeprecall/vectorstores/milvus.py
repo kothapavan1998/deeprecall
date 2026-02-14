@@ -83,6 +83,8 @@ class MilvusStore(BaseVectorStore):
         ids: list[str] | None = None,
         embeddings: list[list[float]] | None = None,
     ) -> list[str]:
+        self._validate_inputs(documents, metadatas, ids, embeddings)
+
         if ids is None:
             ids = [str(uuid.uuid4()) for _ in documents]
 
@@ -130,10 +132,19 @@ class MilvusStore(BaseVectorStore):
         if filters is not None:
             filter_parts = []
             for key, value in filters.items():
+                # Sanitize key and value to prevent filter expression injection
+                safe_key = str(key).replace('"', '\\"')
                 if isinstance(value, str):
-                    filter_parts.append(f'metadata["{key}"] == "{value}"')
+                    safe_val = value.replace('"', '\\"')
+                    filter_parts.append(f'metadata["{safe_key}"] == "{safe_val}"')
+                elif isinstance(value, bool):
+                    filter_parts.append(f'metadata["{safe_key}"] == {"true" if value else "false"}')
+                elif isinstance(value, (int, float)):
+                    filter_parts.append(f'metadata["{safe_key}"] == {value}')
                 else:
-                    filter_parts.append(f'metadata["{key}"] == {value}')
+                    # Convert other types to string
+                    safe_val = str(value).replace('"', '\\"')
+                    filter_parts.append(f'metadata["{safe_key}"] == "{safe_val}"')
             if filter_parts:
                 search_params["filter"] = " and ".join(filter_parts)
 
@@ -163,4 +174,5 @@ class MilvusStore(BaseVectorStore):
 
     def count(self) -> int:
         stats = self._client.get_collection_stats(self._collection_name)
-        return stats.get("row_count", 0)
+        row_count = stats.get("row_count", 0)
+        return int(row_count)  # some versions return string

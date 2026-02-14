@@ -90,6 +90,8 @@ class QdrantStore(BaseVectorStore):
         ids: list[str] | None = None,
         embeddings: list[list[float]] | None = None,
     ) -> list[str]:
+        self._validate_inputs(documents, metadatas, ids, embeddings)
+
         if ids is None:
             ids = [str(uuid.uuid4()) for _ in documents]
 

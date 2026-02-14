@@ -95,6 +95,8 @@ class PineconeStore(BaseVectorStore):
         ids: list[str] | None = None,
         embeddings: list[list[float]] | None = None,
     ) -> list[str]:
+        self._validate_inputs(documents, metadatas, ids, embeddings)
+
         if ids is None:
             ids = [str(uuid.uuid4()) for _ in documents]
 
@@ -144,18 +146,28 @@ class PineconeStore(BaseVectorStore):
         if filters is not None:
             query_kwargs["filter"] = filters
 
-        results = self._index.query(**query_kwargs)
+        response = self._index.query(**query_kwargs)
+
+        # Pinecone SDK v5+ returns objects with attribute access (.matches, .id, .score)
+        # Older versions may return dicts. Handle both gracefully.
+        matches = getattr(response, "matches", None) or response.get("matches", [])
 
         search_results: list[SearchResult] = []
-        for match in results.get("matches", []):
-            metadata = match.get("metadata", {})
-            content = metadata.pop("content", "")
+        for match in matches:
+            match_id = getattr(match, "id", None) or match.get("id", "")
+            match_score = getattr(match, "score", None) or match.get("score", 0.0)
+            raw_metadata = getattr(match, "metadata", None) or match.get("metadata", {})
+            if raw_metadata is None:
+                raw_metadata = {}
+
+            content = raw_metadata.get("content", "")
+            metadata = {k: v for k, v in raw_metadata.items() if k != "content"}
             search_results.append(
                 SearchResult(
                     content=content,
                     metadata=metadata,
-                    score=match.get("score", 0.0),
-                    id=match.get("id", ""),
+                    score=float(match_score),
+                    id=str(match_id),
                 )
             )
 
@@ -166,7 +178,14 @@ class PineconeStore(BaseVectorStore):
 
     def count(self) -> int:
         stats = self._index.describe_index_stats()
+        # SDK v5+ returns object with attributes; older returns dict
         if self._namespace:
-            ns_stats = stats.get("namespaces", {}).get(self._namespace, {})
-            return ns_stats.get("vector_count", 0)
-        return stats.get("total_vector_count", 0)
+            namespaces = getattr(stats, "namespaces", None) or stats.get("namespaces", {})
+            ns_stats = namespaces.get(self._namespace, {})
+            count = getattr(ns_stats, "vector_count", None) or ns_stats.get("vector_count", 0)
+        else:
+            count = (
+                getattr(stats, "total_vector_count", None)
+                or stats.get("total_vector_count", 0)
+            )
+        return int(count)

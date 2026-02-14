@@ -9,6 +9,7 @@ Usage: deeprecall serve --vectorstore chroma --collection my_docs --port 8000
 
 from __future__ import annotations
 
+import asyncio
 import time
 import uuid
 from typing import Any
@@ -87,11 +88,17 @@ class DocumentAddResponse(BaseModel):
 # --- Server Factory ---
 
 
-def create_app(engine: DeepRecallEngine) -> FastAPI:
+def create_app(
+    engine: DeepRecallEngine,
+    api_keys: list[str] | None = None,
+    requests_per_minute: int | None = None,
+) -> FastAPI:
     """Create a FastAPI app wrapping a DeepRecall engine.
 
     Args:
         engine: A configured DeepRecallEngine instance.
+        api_keys: Optional list of valid API keys for auth.
+        requests_per_minute: Optional rate limit per key.
 
     Returns:
         FastAPI app with OpenAI-compatible endpoints.
@@ -99,8 +106,19 @@ def create_app(engine: DeepRecallEngine) -> FastAPI:
     app = FastAPI(
         title="DeepRecall API",
         description="OpenAI-compatible API powered by DeepRecall recursive reasoning.",
-        version="0.1.0",
+        version="0.2.0",
     )
+
+    # Add middleware (order matters: auth first, then rate limit)
+    if api_keys:
+        from deeprecall.middleware.auth import APIKeyAuth
+
+        app.add_middleware(APIKeyAuth, api_keys=api_keys)
+
+    if requests_per_minute:
+        from deeprecall.middleware.rate_limit import RateLimiter
+
+        app.add_middleware(RateLimiter, requests_per_minute=requests_per_minute)
 
     @app.get("/v1/models")
     async def list_models() -> ModelListResponse:
@@ -117,6 +135,12 @@ def create_app(engine: DeepRecallEngine) -> FastAPI:
         if not request.messages:
             raise HTTPException(status_code=400, detail="Messages cannot be empty.")
 
+        # Extract system message as additional context
+        system_context = ""
+        for msg in request.messages:
+            if msg.role == "system":
+                system_context += msg.content + "\n"
+
         # Extract the last user message as the query
         query = ""
         for msg in reversed(request.messages):
@@ -127,13 +151,17 @@ def create_app(engine: DeepRecallEngine) -> FastAPI:
         if not query:
             raise HTTPException(status_code=400, detail="No user message found.")
 
+        # Prepend system context to query if present
+        if system_context:
+            query = f"[System instructions: {system_context.strip()}]\n\n{query}"
+
         if request.stream:
             return StreamingResponse(
                 _stream_response(engine, query, request.model),
                 media_type="text/event-stream",
             )
 
-        result = engine.query(query)
+        result = await asyncio.to_thread(engine.query, query)
 
         return ChatCompletionResponse(
             model=request.model,
@@ -152,7 +180,8 @@ def create_app(engine: DeepRecallEngine) -> FastAPI:
     @app.post("/v1/documents")
     async def add_documents(request: DocumentAddRequest) -> DocumentAddResponse:
         """Add documents to the vector store (DeepRecall extension endpoint)."""
-        ids = engine.add_documents(
+        ids = await asyncio.to_thread(
+            engine.add_documents,
             documents=request.documents,
             metadatas=request.metadatas,
             ids=request.ids,
@@ -160,8 +189,27 @@ def create_app(engine: DeepRecallEngine) -> FastAPI:
         return DocumentAddResponse(ids=ids, count=len(ids))
 
     @app.get("/health")
-    async def health() -> dict[str, str]:
+    async def health() -> dict[str, Any]:
         return {"status": "ok", "engine": repr(engine)}
+
+    @app.get("/v1/usage")
+    async def usage_stats() -> dict[str, Any]:
+        """Return usage statistics if a UsageTrackingCallback is registered."""
+        from deeprecall.core.callbacks import UsageTrackingCallback
+
+        if engine._callback_manager:
+            for cb in engine._callback_manager.callbacks:
+                if isinstance(cb, UsageTrackingCallback):
+                    return {"status": "ok", "usage": cb.summary()}
+        return {"status": "ok", "usage": None, "message": "No usage tracker configured"}
+
+    @app.post("/v1/cache/clear")
+    async def clear_cache() -> dict[str, str]:
+        """Clear the query and search cache."""
+        if engine.config.cache:
+            await asyncio.to_thread(engine.config.cache.clear)
+            return {"status": "ok", "message": "Cache cleared"}
+        return {"status": "ok", "message": "No cache configured"}
 
     return app
 
@@ -172,9 +220,11 @@ async def _stream_response(
     model: str,
 ) -> Any:
     """Stream a DeepRecall response in OpenAI SSE format."""
+    import asyncio
     import json
 
-    result = engine.query(query)
+    # Run query in thread to not block
+    result = await asyncio.to_thread(engine.query, query)
 
     # Stream the answer in chunks
     chunk_size = 50
@@ -197,6 +247,7 @@ async def _stream_response(
             ],
         }
         yield f"data: {json.dumps(data)}\n\n"
+        await asyncio.sleep(0)  # yield control
 
     # Final chunk with finish_reason
     final_data = {

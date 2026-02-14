@@ -10,16 +10,22 @@ import json
 import socket
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from deeprecall.core.types import Source
 from deeprecall.vectorstores.base import BaseVectorStore
+
+if TYPE_CHECKING:
+    from deeprecall.core.cache import BaseCache
+    from deeprecall.core.reranker import BaseReranker
 
 
 class _SearchHandler(BaseHTTPRequestHandler):
     """HTTP handler for vector store search requests."""
 
     vectorstore: BaseVectorStore
+    reranker: BaseReranker | None
+    cache: BaseCache | None
     accessed_sources: list[Source]
     _lock: threading.Lock
 
@@ -39,7 +45,26 @@ class _SearchHandler(BaseHTTPRequestHandler):
             top_k = data.get("top_k", 5)
             filters = data.get("filters")
 
-            results = self.vectorstore.search(query=query, top_k=top_k, filters=filters)
+            # Check search cache first
+            cache_key = None
+            if self.cache is not None:
+                import hashlib
+
+                cache_key = "search:" + hashlib.sha256(
+                    f"{query}|{top_k}|{filters}".encode()
+                ).hexdigest()
+                cached = self.cache.get(cache_key)
+                if cached is not None:
+                    self._send_json(200, cached)
+                    return
+
+            # Fetch more results if reranking (reranker will trim to top_k)
+            fetch_k = top_k * 3 if self.reranker else top_k
+            results = self.vectorstore.search(query=query, top_k=fetch_k, filters=filters)
+
+            # Apply reranking
+            if self.reranker and results:
+                results = self.reranker.rerank(query=query, results=results, top_k=top_k)
 
             # Track accessed sources for the final result
             with self._lock:
@@ -47,6 +72,11 @@ class _SearchHandler(BaseHTTPRequestHandler):
                     self.accessed_sources.append(Source.from_search_result(r))
 
             response_data = [r.to_dict() for r in results]
+
+            # Store in search cache
+            if self.cache is not None and cache_key:
+                self.cache.set(cache_key, response_data, ttl=300)
+
             self._send_json(200, response_data)
 
         except Exception as e:
@@ -62,7 +92,6 @@ class _SearchHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
         """Silence HTTP server logs."""
-        pass
 
 
 class SearchServer:
@@ -76,8 +105,15 @@ class SearchServer:
         server.stop()
     """
 
-    def __init__(self, vectorstore: BaseVectorStore):
+    def __init__(
+        self,
+        vectorstore: BaseVectorStore,
+        reranker: BaseReranker | None = None,
+        cache: BaseCache | None = None,
+    ):
         self.vectorstore = vectorstore
+        self.reranker = reranker
+        self.cache = cache
         self.port = self._find_free_port()
         self._accessed_sources: list[Source] = []
         self._lock = threading.Lock()
@@ -91,6 +127,8 @@ class SearchServer:
             (_SearchHandler,),
             {
                 "vectorstore": self.vectorstore,
+                "reranker": self.reranker,
+                "cache": self.cache,
                 "accessed_sources": self._accessed_sources,
                 "_lock": self._lock,
             },
@@ -111,7 +149,6 @@ class SearchServer:
     def get_accessed_sources(self) -> list[Source]:
         """Return all sources that were accessed during search calls."""
         with self._lock:
-            # Deduplicate by ID, keeping highest score
             seen: dict[str, Source] = {}
             for source in self._accessed_sources:
                 key = source.id or source.content[:100]
