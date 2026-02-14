@@ -71,7 +71,9 @@ class RateLimiter(BaseHTTPMiddleware):
             return await call_next(request)
 
         # Use API key or IP as the rate limit key
-        key = getattr(request.state, "api_key", None) or (request.client.host if request.client else "unknown")
+        key = getattr(request.state, "api_key", None) or (
+            request.client.host if request.client else "unknown"
+        )
 
         with self._lock:
             if key not in self._buckets:

@@ -34,7 +34,9 @@ def test_redis_cache():
     print(f"[INFO] Health: {health}")
     assert health["status"] == "connected", f"Expected connected, got {health}"
     assert "redis_version" in health
-    print(f"[PASS] Health check: connected, Redis v{health['redis_version']}, latency={health['latency_ms']}ms")
+    print(
+        f"[PASS] Health check: connected, Redis v{health['redis_version']}, latency={health['latency_ms']}ms"
+    )
 
     # 3. Clear any leftover test data
     cache.clear()
@@ -87,7 +89,9 @@ def test_redis_cache():
     assert stats["hits"] > 0
     assert stats["misses"] > 0
     assert 0 < stats["hit_rate"] < 1
-    print(f"[PASS] Stats: {stats['hits']} hits, {stats['misses']} misses, hit_rate={stats['hit_rate']}")
+    print(
+        f"[PASS] Stats: {stats['hits']} hits, {stats['misses']} misses, hit_rate={stats['hit_rate']}"
+    )
 
     # 11. Object with to_dict() method
     class FakeDeepRecallResult:
@@ -187,8 +191,12 @@ def test_otel_callback():
     result = DeepRecallResult(
         answer="The capital of France is Paris.",
         sources=[
-            Source(content="Paris is the capital...", metadata={"source": "wiki"}, score=0.95, id="1"),
-            Source(content="France, officially...", metadata={"source": "ency"}, score=0.88, id="2"),
+            Source(
+                content="Paris is the capital...", metadata={"source": "wiki"}, score=0.95, id="1"
+            ),
+            Source(
+                content="France, officially...", metadata={"source": "ency"}, score=0.88, id="2"
+            ),
         ],
         reasoning_trace=[step1, step2, step3],
         usage=UsageInfo(total_input_tokens=500, total_output_tokens=200, total_calls=3),
@@ -235,6 +243,7 @@ def test_otel_callback():
 
     # Force flush
     from opentelemetry import trace
+
     provider = trace.get_tracer_provider()
     if hasattr(provider, "force_flush"):
         provider.force_flush()
@@ -245,6 +254,7 @@ def test_otel_callback():
 
     # 5. Verify traces arrived at Jaeger via API
     import urllib.request
+
     try:
         url = "http://localhost:16686/api/services"
         req = urllib.request.Request(url)

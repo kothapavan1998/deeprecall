@@ -90,27 +90,21 @@ class TestRedisCache:
 
         cache.set("key", {"value": 42}, ttl=300)
 
-        client.setex.assert_called_once_with(
-            "deeprecall:key", 300, json.dumps({"value": 42})
-        )
+        client.setex.assert_called_once_with("deeprecall:key", 300, json.dumps({"value": 42}))
 
     def test_set_without_ttl(self):
         cache, client = self._make_cache(default_ttl=3600)
 
         cache.set("key", "value")
 
-        client.setex.assert_called_once_with(
-            "deeprecall:key", 3600, json.dumps("value")
-        )
+        client.setex.assert_called_once_with("deeprecall:key", 3600, json.dumps("value"))
 
     def test_set_no_expiry(self):
         cache, client = self._make_cache(default_ttl=None)
 
         cache.set("key", "forever")
 
-        client.set.assert_called_once_with(
-            "deeprecall:key", json.dumps("forever")
-        )
+        client.set.assert_called_once_with("deeprecall:key", json.dumps("forever"))
 
     def test_set_with_to_dict_object(self):
         cache, client = self._make_cache()

@@ -21,11 +21,13 @@ CHROMA_DIR = "/tmp/deeprecall_cre_test_db"
 # Document loading helpers
 # ---------------------------------------------------------------------------
 
+
 def load_pdf_text(path: str) -> str:
     """Read a text-based PDF (the lenderbox PDFs are simple text)."""
     with open(path, "rb") as f:
         try:
             import PyPDF2  # noqa: F811
+
             reader = PyPDF2.PdfReader(f)
             return "\n".join(page.extract_text() or "" for page in reader.pages)
         except ImportError:
@@ -48,6 +50,7 @@ def load_csv_rows(path: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Chunking strategies
 # ---------------------------------------------------------------------------
+
 
 def chunk_loan_applications(rows: list[dict]) -> list[tuple[str, dict]]:
     """One document per loan application."""
@@ -147,7 +150,7 @@ def chunk_market_data(rows: list[dict]) -> list[tuple[str, dict]]:
         by_key[key].append(r)
 
     docs = []
-    for key, months in by_key.items():
+    for _key, months in by_key.items():
         city = months[0]["city"]
         ptype = months[0]["property_type"]
 
@@ -184,6 +187,7 @@ def chunk_market_data(rows: list[dict]) -> list[tuple[str, dict]]:
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+
 
 def main():
     from deeprecall import (

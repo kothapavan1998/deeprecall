@@ -80,8 +80,7 @@ class RedisCache(BaseCache):
             import redis
         except ImportError:
             raise ImportError(
-                "redis is required for RedisCache. "
-                "Install it with: pip install deeprecall[redis]"
+                "redis is required for RedisCache. Install it with: pip install deeprecall[redis]"
             ) from None
 
         self.default_ttl = default_ttl
@@ -173,9 +172,7 @@ class RedisCache(BaseCache):
         try:
             cursor = 0
             while True:
-                cursor, keys = self._client.scan(
-                    cursor=cursor, match=f"{self.prefix}*", count=500
-                )
+                cursor, keys = self._client.scan(cursor=cursor, match=f"{self.prefix}*", count=500)
                 if keys:
                     self._client.delete(*keys)
                 if cursor == 0:
@@ -193,9 +190,7 @@ class RedisCache(BaseCache):
             count = 0
             cursor = 0
             while True:
-                cursor, keys = self._client.scan(
-                    cursor=cursor, match=f"{self.prefix}*", count=500
-                )
+                cursor, keys = self._client.scan(cursor=cursor, match=f"{self.prefix}*", count=500)
                 count += len(keys)
                 if cursor == 0:
                     break

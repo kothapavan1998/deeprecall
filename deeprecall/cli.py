@@ -239,9 +239,7 @@ max_size = 1000
     click.echo(f"Created config file: {path}")
 
 
-def _build_vectorstore(
-    vectorstore: str, collection: str, persist_dir: str | None = None
-) -> object:
+def _build_vectorstore(vectorstore: str, collection: str, persist_dir: str | None = None) -> object:
     """Build a vector store from CLI args."""
     if vectorstore == "chroma":
         from deeprecall.vectorstores.chroma import ChromaStore

@@ -184,8 +184,5 @@ class PineconeStore(BaseVectorStore):
             ns_stats = namespaces.get(self._namespace, {})
             count = getattr(ns_stats, "vector_count", None) or ns_stats.get("vector_count", 0)
         else:
-            count = (
-                getattr(stats, "total_vector_count", None)
-                or stats.get("total_vector_count", 0)
-            )
+            count = getattr(stats, "total_vector_count", None) or stats.get("total_vector_count", 0)
         return int(count)

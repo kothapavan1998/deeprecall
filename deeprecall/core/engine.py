@@ -156,9 +156,7 @@ class DeepRecallEngine:
             # Build setup code that injects search_db() into the REPL
             setup_code = build_search_setup_code(
                 server_port=search_server.port,
-                max_search_calls=(
-                    effective_budget.max_search_calls if effective_budget else None
-                ),
+                max_search_calls=(effective_budget.max_search_calls if effective_budget else None),
             )
 
             # Build environment kwargs

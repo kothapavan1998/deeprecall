@@ -334,7 +334,9 @@ class TestRateLimiterConcurrency:
         def create_bucket(key: str):
             with limiter._lock:
                 if key not in limiter._buckets:
-                    limiter._buckets[key] = _TokenBucket(rate=limiter.rate, capacity=limiter.capacity)
+                    limiter._buckets[key] = _TokenBucket(
+                        rate=limiter.rate, capacity=limiter.capacity
+                    )
                 return limiter._buckets[key]
 
         keys = [f"key-{i}" for i in range(50)]
@@ -390,9 +392,7 @@ class TestCallbackManagerConcurrency:
         def dispatch_events(i: int):
             from deeprecall.core.config import DeepRecallConfig
 
-            config = DeepRecallConfig(
-                backend="openai", backend_kwargs={"model_name": "test"}
-            )
+            config = DeepRecallConfig(backend="openai", backend_kwargs={"model_name": "test"})
             manager.on_query_start(f"query-{i}", config)
 
             step = ReasoningStep(iteration=1, action="compute")

@@ -61,7 +61,10 @@ class CallbackManager:
             getattr(cb, method)(*args, **kwargs)
         except Exception:
             _logger.warning(
-                "Callback %s.%s failed", type(cb).__name__, method, exc_info=True,
+                "Callback %s.%s failed",
+                type(cb).__name__,
+                method,
+                exc_info=True,
             )
 
     def on_query_start(self, query: str, config: DeepRecallConfig) -> None:
@@ -178,13 +181,16 @@ class JSONLCallback(BaseCallback):
         self._write("reasoning_step", {"step": step.to_dict(), "budget": budget_status.to_dict()})
 
     def on_query_end(self, result: DeepRecallResult) -> None:
-        self._write("query_end", {
-            "answer_length": len(result.answer),
-            "sources": len(result.sources),
-            "steps": len(result.reasoning_trace),
-            "execution_time": result.execution_time,
-            "error": result.error,
-        })
+        self._write(
+            "query_end",
+            {
+                "answer_length": len(result.answer),
+                "sources": len(result.sources),
+                "steps": len(result.reasoning_trace),
+                "execution_time": result.execution_time,
+                "error": result.error,
+            },
+        )
 
     def on_error(self, error: Exception) -> None:
         self._write("error", {"error": str(error), "type": type(error).__name__})

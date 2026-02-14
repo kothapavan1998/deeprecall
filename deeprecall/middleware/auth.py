@@ -30,7 +30,9 @@ class APIKeyAuth(BaseHTTPMiddleware):
         self,
         app: Any,
         api_keys: list[str] | None = None,
-        validate_fn: Callable[[str], bool] | Callable[[str], Coroutine[Any, Any, bool]] | None = None,
+        validate_fn: Callable[[str], bool]
+        | Callable[[str], Coroutine[Any, Any, bool]]
+        | None = None,
         exempt_paths: list[str] | None = None,
     ):
         super().__init__(app)

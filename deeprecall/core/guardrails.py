@@ -114,9 +114,7 @@ class BudgetStatus:
         """Return usage as a fraction of budget for each limit."""
         b = self.budget
         return {
-            "iterations": (
-                self.iterations_used / b.max_iterations if b.max_iterations else None
-            ),
+            "iterations": (self.iterations_used / b.max_iterations if b.max_iterations else None),
             "search_calls": (
                 self.search_calls_used / b.max_search_calls if b.max_search_calls else None
             ),

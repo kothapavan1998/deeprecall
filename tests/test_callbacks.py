@@ -85,7 +85,7 @@ class TestUsageTrackingCallback:
     def test_tracks_multiple_queries(self):
         tracker = UsageTrackingCallback()
 
-        for i in range(3):
+        for _i in range(3):
             result = DeepRecallResult(
                 answer="answer",
                 usage=UsageInfo(total_input_tokens=100, total_output_tokens=50),

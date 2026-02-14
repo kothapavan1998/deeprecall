@@ -26,7 +26,6 @@ TechNova operates in three business segments:
 
 The company has 2,847 employees across 12 offices globally, with major R&D centers
 in Austin (HQ), Berlin, and Singapore.""",
-
     # Document 2: Product details
     """TechNova Product Line - Technical Specifications
 
@@ -52,7 +51,6 @@ ChainSight (Supply Chain Analytics):
 - Integration with SAP, Oracle, and Microsoft Dynamics
 - Enterprise pricing: $50,000 - $500,000 annually
 - Notable clients: Procter & Gamble, Unilever, Nestlé""",
-
     # Document 3: Financial details
     """TechNova Financial Performance - Detailed Breakdown
 
@@ -78,7 +76,6 @@ The improvement in margins was driven by:
 
 Capital expenditure was $89M, primarily for the new Berlin R&D center
 and expansion of the Austin manufacturing facility.""",
-
     # Document 4: Competitive landscape
     """TechNova Competitive Analysis - Market Position
 
@@ -106,7 +103,6 @@ Supply Chain Analytics Market (TAM: $12.4B by 2027):
 - Kinaxis: 11%
 - TechNova ChainSight: 3%
 - o9 Solutions: 5%""",
-
     # Document 5: Leadership and strategy
     """TechNova Leadership and Strategic Outlook
 
@@ -135,7 +131,6 @@ Recent Partnerships:
 - NVIDIA: Preferred partner for Jetson robotics platform
 - Microsoft: Azure integration for ChainSight
 - Samsung SDS: Distribution partner for Asian markets""",
-
     # Document 6: Technical deep-dive
     """TechNova AI Architecture - Technical White Paper (Summary)
 

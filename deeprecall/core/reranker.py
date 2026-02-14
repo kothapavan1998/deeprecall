@@ -149,5 +149,7 @@ class CrossEncoderReranker(BaseReranker):
                 )
             return reranked
         except Exception:
-            _logger.warning("CrossEncoder reranker failed, returning original results", exc_info=True)
+            _logger.warning(
+                "CrossEncoder reranker failed, returning original results", exc_info=True
+            )
             return results[:top_k]

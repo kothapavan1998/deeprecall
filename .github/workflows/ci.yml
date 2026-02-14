@@ -36,4 +36,4 @@ jobs:
           pip install -e ".[all]"
           pip install pytest pytest-cov
       - name: Run tests
-        run: pytest tests/ -v --cov=deeprecall
+        run: pytest tests/ -v --cov=deeprecall --ignore=tests/test_integration_redis_otel.py --ignore=tests/test_cre_e2e.py

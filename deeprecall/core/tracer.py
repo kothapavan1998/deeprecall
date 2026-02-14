@@ -106,18 +106,18 @@ class DeepRecallTracer:
     def log_metadata(self, metadata: Any) -> None:
         """Accept metadata calls from RLM (no-op for our use case)."""
 
-    def _extract_search_calls(
-        self, code: str, stdout: str | None
-    ) -> list[dict[str, Any]]:
+    def _extract_search_calls(self, code: str, stdout: str | None) -> list[dict[str, Any]]:
         """Parse search_db() calls from code to track queries."""
         calls: list[dict[str, Any]] = []
         # Find all search_db("...") patterns in the code
         pattern = re.compile(r'search_db\s*\(\s*["\']([^"\']+)["\']')
         for match in pattern.finditer(code):
-            calls.append({
-                "query": match.group(1),
-                "has_results": stdout is not None and "content" in (stdout or ""),
-            })
+            calls.append(
+                {
+                    "query": match.group(1),
+                    "has_results": stdout is not None and "content" in (stdout or ""),
+                }
+            )
         # If we detected search_db calls but couldn't parse the query
         if not calls and self._search_pattern.search(code):
             calls.append({"query": "<dynamic>", "has_results": True})

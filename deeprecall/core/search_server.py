@@ -50,9 +50,9 @@ class _SearchHandler(BaseHTTPRequestHandler):
             if self.cache is not None:
                 import hashlib
 
-                cache_key = "search:" + hashlib.sha256(
-                    f"{query}|{top_k}|{filters}".encode()
-                ).hexdigest()
+                cache_key = (
+                    "search:" + hashlib.sha256(f"{query}|{top_k}|{filters}".encode()).hexdigest()
+                )
                 cached = self.cache.get(cache_key)
                 if cached is not None:
                     self._send_json(200, cached)

@@ -202,8 +202,12 @@ class TestOpenTelemetryCallback:
         cb._local.current_span = None
 
         result = DeepRecallResult(
-            answer="ok", sources=[], reasoning_trace=[], usage=UsageInfo(),
-            execution_time=0.1, query="test",
+            answer="ok",
+            sources=[],
+            reasoning_trace=[],
+            usage=UsageInfo(),
+            execution_time=0.1,
+            query="test",
         )
         cb.on_query_end(result)  # Should not raise
         cb.on_error(ValueError("test"))  # Should not raise

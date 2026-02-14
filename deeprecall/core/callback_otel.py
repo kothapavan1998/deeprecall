@@ -102,9 +102,7 @@ class OpenTelemetryCallback(BaseCallback):
         self._local.current_span = span
         self._local.step_count = 0
         # Set the span as current context (so child spans nest correctly)
-        self._local.ctx_token = trace.context_api.attach(
-            trace.set_span_in_context(span)
-        )
+        self._local.ctx_token = trace.context_api.attach(trace.set_span_in_context(span))
 
     def on_reasoning_step(self, step: ReasoningStep, budget_status: BudgetStatus) -> None:
         """Create a child span for each reasoning iteration."""
@@ -150,17 +148,19 @@ class OpenTelemetryCallback(BaseCallback):
         if span is None:
             return
 
-        span.set_attributes({
-            "deeprecall.execution_time_s": round(result.execution_time, 3),
-            "deeprecall.answer_length": len(result.answer),
-            "deeprecall.sources_count": len(result.sources),
-            "deeprecall.steps_count": len(result.reasoning_trace),
-            "deeprecall.tokens.input": result.usage.total_input_tokens,
-            "deeprecall.tokens.output": result.usage.total_output_tokens,
-            "deeprecall.tokens.total": (
-                result.usage.total_input_tokens + result.usage.total_output_tokens
-            ),
-        })
+        span.set_attributes(
+            {
+                "deeprecall.execution_time_s": round(result.execution_time, 3),
+                "deeprecall.answer_length": len(result.answer),
+                "deeprecall.sources_count": len(result.sources),
+                "deeprecall.steps_count": len(result.reasoning_trace),
+                "deeprecall.tokens.input": result.usage.total_input_tokens,
+                "deeprecall.tokens.output": result.usage.total_output_tokens,
+                "deeprecall.tokens.total": (
+                    result.usage.total_input_tokens + result.usage.total_output_tokens
+                ),
+            }
+        )
 
         if result.confidence is not None:
             span.set_attribute("deeprecall.confidence", result.confidence)
@@ -249,6 +249,7 @@ def _init_tracer(
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import (
             OTLPSpanExporter,
         )
+
         exporter_kwargs["insecure"] = insecure
 
     exporter = OTLPSpanExporter(**exporter_kwargs)
