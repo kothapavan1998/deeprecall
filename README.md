@@ -6,8 +6,8 @@
 
 <p align="center">
   <a href="https://pypi.org/project/deeprecall/"><img src="https://img.shields.io/pypi/v/deeprecall?color=blue" alt="PyPI"></a>
-  <a href="https://pypi.org/project/deeprecall/"><img src="https://img.shields.io/pypi/pyversions/deeprecall" alt="Python 3.11+"></a>
-  <a href="https://github.com/kothapavan/deeprecall/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
+  <a href="https://pypi.org/project/deeprecall/"><img src="https://img.shields.io/pypi/pyversions/deeprecall" alt="Python"></a>
+  <a href="https://github.com/kothapavan1998/deeprecall/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="MIT License"></a>
 </p>
 
 ---

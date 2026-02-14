@@ -1,7 +1,7 @@
 [project]
 name = "deeprecall"
 authors = [
-    {name = "Pavan Kothapalli"},
+    {name = "Pavan Kumar Kotha", email = "54451831+kothapavan1998@users.noreply.github.com"},
 ]
 version = "0.1.0"
 description = "Recursive reasoning engine for AI agents and vector databases, powered by RLM."
@@ -28,9 +28,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/kothapavan/deeprecall"
-Repository = "https://github.com/kothapavan/deeprecall"
-Issues = "https://github.com/kothapavan/deeprecall/issues"
+Homepage = "https://github.com/kothapavan1998/deeprecall"
+Repository = "https://github.com/kothapavan1998/deeprecall"
+Issues = "https://github.com/kothapavan1998/deeprecall/issues"
 
 [project.optional-dependencies]
 milvus = ["pymilvus>=2.5.0"]
