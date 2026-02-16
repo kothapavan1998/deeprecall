@@ -15,7 +15,7 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dependencies
-        run: pip install ruff
+        run: pip install "ruff>=0.8.0"
       - name: Lint
         run: ruff check .
       - name: Format check
@@ -42,7 +42,7 @@ jobs:
           python-version: "3.11"
       - name: Install dependencies
         run: |
-          pip install -e ".[all]"
+          pip install -e ".[chroma,server,redis]"
           pip install mypy
       - name: Type check
         run: mypy deeprecall --ignore-missing-imports

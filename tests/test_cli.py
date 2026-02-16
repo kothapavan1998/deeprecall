@@ -208,10 +208,14 @@ class TestQueryCommand:
             result = runner.invoke(
                 main,
                 [
-                    "query", "test",
-                    "--max-searches", "5",
-                    "--max-tokens", "1000",
-                    "--max-time", "10.0",
+                    "query",
+                    "test",
+                    "--max-searches",
+                    "5",
+                    "--max-tokens",
+                    "1000",
+                    "--max-time",
+                    "10.0",
                 ],
             )
 
@@ -240,10 +244,14 @@ class TestServeCommand:
                 main,
                 [
                     "serve",
-                    "--vectorstore", "chroma",
-                    "--port", "9999",
-                    "--api-keys", "key1,key2",
-                    "--rate-limit", "30",
+                    "--vectorstore",
+                    "chroma",
+                    "--port",
+                    "9999",
+                    "--api-keys",
+                    "key1,key2",
+                    "--rate-limit",
+                    "30",
                 ],
             )
 
