@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`filters` param on `query()`** -- New optional `filters: dict` parameter constrains all `search_db()` calls to matching metadata. The LLM can also pass additional filters at call time.
 - **`context_prefix` param on `query()`** -- New optional `context_prefix: str` parameter prepends contextual information (e.g., section name, rule ID) to the RLM prompt.
 - **`search_db()` now accepts `filters`** -- The REPL-injected `search_db(query, top_k, filters)` function now supports metadata filtering, forwarded to the search server.
-- **Live integration test suite** -- 16 new tests validating v0.4 features against real Redis on Docker and real dataclass round-trips.
+- **Expanded test suite** -- 41 new tests: 21 unit tests for partial synthesis, async embedding wrapping, filters, and context_prefix; 20 live integration tests verifying all new features against real OpenAI API with edge cases (budget exhaustion, special characters, empty stores, combined params). Plus 16 earlier tests validating v0.4 features against real Redis on Docker.
 
 ### Changed
 

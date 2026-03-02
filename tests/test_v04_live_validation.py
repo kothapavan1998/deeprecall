@@ -22,7 +22,7 @@ class TestPackageVersion:
         from importlib.metadata import version
 
         v = version("deeprecall")
-        assert v == "0.4.0", f"Expected 0.4.0, got {v}"
+        assert v == "0.4.1", f"Expected 0.4.1, got {v}"
 
     def test_rlms_minimum_version(self):
         from importlib.metadata import version
