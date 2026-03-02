@@ -54,7 +54,7 @@ class TestBuildSearchSetupCode:
 
     def test_defines_search_db_function(self):
         code = build_search_setup_code(server_port=8080)
-        assert "def search_db(query, top_k=5):" in code
+        assert "def search_db(query, top_k=5, filters=None):" in code
 
     def test_no_budget_by_default(self):
         code = build_search_setup_code(server_port=8080)

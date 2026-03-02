@@ -132,6 +132,29 @@ class MyCallback(BaseCallback):
             print(f"Got final answer at iteration {iteration}")
 ```
 
+### Metadata Filters & Context Injection
+
+`query()` now accepts `filters` (metadata dict applied to every search) and `context_prefix` (text prepended to the prompt). Useful for per-rule or per-section compliance queries.
+
+```python
+result = engine.query(
+    "Does this deal comply with anti-money laundering rules?",
+    filters={"section": "4.2"},
+    context_prefix="Policy Section 4.2: Anti-Money Laundering Requirements",
+)
+```
+
+### Async Embedding Functions
+
+Vector stores now accept async `embedding_fn` callables. Async functions are auto-detected and wrapped, so you no longer need a manual thread pool executor workaround.
+
+```python
+async def my_async_embed(texts: list[str]) -> list[list[float]]:
+    return await embedding_service.embed(texts)
+
+store = MilvusStore(collection_name="docs", embedding_fn=my_async_embed)
+```
+
 ---
 
 ## What's New in v0.3
@@ -348,7 +371,7 @@ deeprecall serve --api-keys "key1,key2" --rate-limit 60 --port 8000
 ## How It Works
 
 1. A lightweight HTTP server wraps your vector store on a random port
-2. A `search_db(query, top_k)` function is injected into the RLM's sandboxed REPL
+2. A `search_db(query, top_k, filters)` function is injected into the RLM's sandboxed REPL
 3. The LLM enters a recursive loop -- it can search, write Python, call sub-LLMs, and search again
 4. When it has enough info, it returns a `FINAL()` answer
 5. You get back the answer, sources, full reasoning trace, budget usage, and confidence score
@@ -376,7 +399,7 @@ with ChromaStore(collection_name="my_docs") as store:
 
 ### Custom Embedding Functions
 
-Stores that require `embedding_fn` expect a callable with this signature:
+Stores that require `embedding_fn` expect a callable with this signature. Both sync and async functions are supported -- async functions are auto-detected and wrapped.
 
 ```python
 def my_embed_fn(texts: list[str]) -> list[list[float]]:
@@ -388,6 +411,12 @@ def my_embed_fn(texts: list[str]) -> list[list[float]]:
     return [e.embedding for e in response.data]
 
 store = MilvusStore(collection_name="docs", embedding_fn=my_embed_fn)
+
+# Async embedding functions also work directly (v0.4+):
+async def my_async_embed(texts: list[str]) -> list[list[float]]:
+    return await embedding_service.embed(texts)
+
+store = MilvusStore(collection_name="docs", embedding_fn=my_async_embed)
 ```
 
 ## Framework Adapters
@@ -439,7 +468,7 @@ tests/
 ├── test_batch.py         # Batch query tests
 ├── test_deprecations.py  # Deprecation utility tests
 ├── test_concurrency.py   # Thread safety & race condition tests
-└── ...                   # 439 tests total (unit + integration + e2e)
+└── ...                   # 460+ tests (unit + integration + live + e2e)
 ```
 
 ## Contributing

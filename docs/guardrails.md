@@ -87,17 +87,23 @@ deeprecall query "question" --max-searches 10 --max-tokens 50000 --max-time 30
 
 ## What happens when a budget is exceeded
 
-- The engine catches the `BudgetExceededError` internally
-- Returns a partial result with whatever the LLM produced so far
-- Sets `result.error` with the reason
-- Sets `result.budget_status["budget_exceeded"] = True`
+When any budget limit is hit, the engine:
+
+1. Catches the `BudgetExceededError` internally
+2. Collects all retrieved sources from the search server
+3. Makes a **one-shot synthesis LLM call** to produce a best-effort answer from the sources gathered so far (instead of returning raw REPL state)
+4. Returns a `[Partial]` result with the synthesized answer
+5. Sets `result.error` with the reason
+6. Sets `result.budget_status["budget_exceeded"] = True`
+
+If the synthesis call itself fails, the result falls back to a clean message indicating how many sources were retrieved.
 
 ```python
 result = engine.query("question", budget=QueryBudget(max_search_calls=3))
 
 if result.error:
     print(f"Budget hit: {result.error}")
-    print(f"Partial answer: {result.answer}")
+    print(f"Partial answer: {result.answer}")  # Synthesized, not raw REPL state
 ```
 
 ## Search gating

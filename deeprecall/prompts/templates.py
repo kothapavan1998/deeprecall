@@ -17,8 +17,9 @@ The REPL environment is initialized with:
 2. A `llm_query` function to query an LLM (handles ~500K chars) inside the REPL.
 3. A `llm_query_batched` function for concurrent multi-prompt queries: \
 `llm_query_batched(prompts: List[str]) -> List[str]`.
-4. A `search_db(query, top_k=5)` function that searches a vector database and returns the most \
-relevant documents. Each result is a dict with: "content", "metadata", "score", "id".
+4. A `search_db(query, top_k=5, filters=None)` function that searches a vector database and returns \
+the most relevant documents. Each result is a dict with: "content", "metadata", "score", "id". \
+The optional `filters` dict narrows results by metadata (e.g., `{{"section": "4.2"}}`).
 5. A `SHOW_VARS()` function that returns all variables you have created.
 6. The ability to use `print()` statements to view REPL output.
 7. A `history` variable that accumulates summaries of prior reasoning steps (available when \
@@ -90,21 +91,16 @@ Think step by step, plan, and execute immediately -- don't just say what you wil
 def build_search_setup_code(
     server_port: int,
     max_search_calls: int | None = None,
+    default_filters: dict | None = None,
 ) -> str:
     """Build the Python setup code that injects search_db() into the REPL namespace.
-
-    This creates a search_db() function that calls the local DeepRecall search
-    server over HTTP. Uses only stdlib (urllib) so no extra deps needed in the REPL.
-    Optionally includes a search call counter for budget enforcement.
 
     Args:
         server_port: Port of the local search HTTP server.
         max_search_calls: Optional limit on total search calls. None = unlimited.
-
-    Returns:
-        Python code string to execute in the REPL during setup.
+        default_filters: Optional metadata filters applied to every search call.
+            The LLM can still pass additional filters that are merged on top.
     """
-    # Build the budget gating code
     if max_search_calls is not None:
         budget_code = f"""\
 _search_call_count = 0
@@ -121,23 +117,34 @@ _max_search_calls = {max_search_calls}
         budget_code = ""
         budget_check = ""
 
+    import json as _stdlib_json
+
+    default_filters_repr = _stdlib_json.dumps(default_filters) if default_filters else "None"
+
     return textwrap.dedent(f"""\
 import urllib.request
 import json as _json
 
+_default_filters = {default_filters_repr}
+
 {budget_code}
-def search_db(query, top_k=5):
+def search_db(query, top_k=5, filters=None):
     \"\"\"Search the vector database for relevant documents.
 
     Args:
         query: Search query string.
         top_k: Number of results to return (default 5).
+        filters: Optional metadata filter dict (e.g., {{"section": "4.2"}}).
 
     Returns:
         List of dicts with keys: content, metadata, score, id.
     \"\"\"
 {budget_check}\
-    _data = _json.dumps({{"query": query, "top_k": top_k}}).encode()
+    _merged = {{**(_default_filters or {{}}), **(filters or {{}})}}
+    _payload = {{"query": query, "top_k": top_k}}
+    if _merged:
+        _payload["filters"] = _merged
+    _data = _json.dumps(_payload).encode()
     _req = urllib.request.Request(
         "http://127.0.0.1:{server_port}/search",
         data=_data,

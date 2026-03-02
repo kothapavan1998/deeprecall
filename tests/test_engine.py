@@ -239,25 +239,7 @@ class TestDeepRecallEngine:
         # Average of top-3 = (0.9 + 0.8 + 0.7) / 3 = 0.8
         assert confidence == 0.8
 
-    # -- _build_cache_key --
-
-    def test_cache_key_deterministic(self, mock_vectorstore):
-        engine = DeepRecallEngine(vectorstore=mock_vectorstore)
-        k1 = engine._build_cache_key("Hello", 5)
-        k2 = engine._build_cache_key("Hello", 5)
-        assert k1 == k2
-
-    def test_cache_key_differs_for_different_queries(self, mock_vectorstore):
-        engine = DeepRecallEngine(vectorstore=mock_vectorstore)
-        k1 = engine._build_cache_key("Hello", 5)
-        k2 = engine._build_cache_key("World", 5)
-        assert k1 != k2
-
-    def test_cache_key_differs_for_different_top_k(self, mock_vectorstore):
-        engine = DeepRecallEngine(vectorstore=mock_vectorstore)
-        k1 = engine._build_cache_key("Hello", 5)
-        k2 = engine._build_cache_key("Hello", 10)
-        assert k1 != k2
+    # _build_cache_key was inlined into query(); cache key logic tested via cache integration
 
 
 # ---------------------------------------------------------------------------

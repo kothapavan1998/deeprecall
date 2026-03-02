@@ -91,7 +91,7 @@ class TestAsyncDeepRecallEngine:
 
         assert result.answer == "Mocked async answer"
         assert result.query == "test question"
-        mock_query.assert_called_once_with("test question", None, 3, None)
+        mock_query.assert_called_once_with("test question", None, 3, None, None, None)
 
     @pytest.mark.asyncio
     async def test_query_with_budget(self, mock_vectorstore):
@@ -108,7 +108,7 @@ class TestAsyncDeepRecallEngine:
             result = await engine.query("q", budget=budget)
 
         assert result.answer == "ok"
-        mock_sync_query.assert_called_once_with("q", None, None, budget)
+        mock_sync_query.assert_called_once_with("q", None, None, budget, None, None)
 
     @pytest.mark.asyncio
     async def test_batch_lock_prevents_concurrent_corruption(self, mock_vectorstore):

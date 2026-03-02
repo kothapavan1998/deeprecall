@@ -57,6 +57,8 @@ class AsyncDeepRecallEngine:
         root_prompt: str | None = None,
         top_k: int | None = None,
         budget: QueryBudget | None = None,
+        filters: dict[str, Any] | None = None,
+        context_prefix: str | None = None,
     ) -> DeepRecallResult:
         """Execute a recursive reasoning query asynchronously.
 
@@ -65,9 +67,8 @@ class AsyncDeepRecallEngine:
             root_prompt: Optional short prompt visible to the root LM.
             top_k: Override the default top_k for this query.
             budget: Per-query budget override.
-
-        Returns:
-            DeepRecallResult with answer, sources, reasoning trace, and usage info.
+            filters: Optional metadata filters applied to every search_db call.
+            context_prefix: Optional text prepended to the context (e.g., section info).
         """
         return await asyncio.to_thread(
             self._engine.query,
@@ -75,6 +76,8 @@ class AsyncDeepRecallEngine:
             root_prompt,
             top_k,
             budget,
+            filters,
+            context_prefix,
         )
 
     async def query_batch(

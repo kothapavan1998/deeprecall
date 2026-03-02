@@ -97,6 +97,8 @@ result = engine.query(
         max_time_seconds=30.0,
         max_cost_usd=0.50,   # USD cost limit (v0.4+, requires OpenRouter)
     ),
+    filters=None,        # dict | None: metadata filters for all search_db calls (v0.4+)
+    context_prefix=None, # str | None: text prepended to the LLM context (v0.4+)
 )
 
 # Batch query (concurrent, returns list[DeepRecallResult])
@@ -175,8 +177,12 @@ store = FAISSStore.load("./index", embedding_fn=my_embed_fn)
 ### Custom Embedding Function Signature
 
 ```python
+# Sync (standard)
 def my_embed_fn(texts: list[str]) -> list[list[float]]:
-    # Returns list of embedding vectors
+    ...
+
+# Async (v0.4+ -- auto-detected and wrapped for sync execution)
+async def my_embed_fn(texts: list[str]) -> list[list[float]]:
     ...
 ```
 

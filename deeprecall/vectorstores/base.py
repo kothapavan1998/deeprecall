@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import asyncio
+import inspect
+import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from typing import Any
 
 from deeprecall.core.types import SearchResult
+
+_logger = logging.getLogger(__name__)
 
 
 class BaseVectorStore(ABC):
@@ -16,13 +21,18 @@ class BaseVectorStore(ABC):
     a consistent interface for the DeepRecall engine.
 
     Args:
-        embedding_fn: Optional custom embedding function. If provided, it will be used
-            instead of the vector store's built-in embedding. Signature:
-            (texts: list[str]) -> list[list[float]]
+        embedding_fn: Optional custom embedding function. Accepts both sync and async
+            callables. Async functions are auto-wrapped for sync execution.
+            Signature: (texts: list[str]) -> list[list[float]]
     """
 
     def __init__(self, embedding_fn: Callable[[list[str]], list[list[float]]] | None = None):
-        self.embedding_fn = embedding_fn
+        self._async_embedding_fn: Callable | None = None
+        self.embedding_fn: Callable[[list[str]], list[list[float]]] | None = embedding_fn
+        if embedding_fn is not None and inspect.iscoroutinefunction(embedding_fn):
+            _logger.debug("Wrapping async embedding_fn for synchronous execution")
+            self._async_embedding_fn = embedding_fn
+            self.embedding_fn = self._wrap_async_embedding_fn(embedding_fn)
 
     @abstractmethod
     def add_documents(
@@ -115,6 +125,25 @@ class BaseVectorStore(ABC):
 
     def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         self.close()
+
+    @staticmethod
+    def _wrap_async_embedding_fn(
+        fn: Callable,
+    ) -> Callable[[list[str]], list[list[float]]]:
+        """Wrap an async embedding function so it can be called synchronously."""
+
+        def _sync_wrapper(texts: list[str]) -> list[list[float]]:
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                return asyncio.run(fn(texts))
+            # Already inside an event loop -- run in a fresh thread to avoid deadlock.
+            import concurrent.futures
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                return pool.submit(asyncio.run, fn(texts)).result()
+
+        return _sync_wrapper
 
     def _generate_embeddings(self, texts: list[str]) -> list[list[float]] | None:
         """Generate embeddings using the custom embedding function if provided."""

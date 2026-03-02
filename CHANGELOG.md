@@ -17,6 +17,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Iteration lifecycle callbacks** -- `on_iteration_start(iteration)` and `on_iteration_complete(iteration, has_final_answer)` hooks on `BaseCallback`, `CallbackManager`, `JSONLCallback`, and `ProgressCallback`.
 - **Full RLMLogger protocol** -- `DeepRecallTracer` now implements `clear_iterations()` and `get_trajectory()`, matching the updated RLM v0.1.1 logger interface.
 - **Graceful RLM exception handling** -- `TimeoutExceededError`, `TokenLimitExceededError`, `ErrorThresholdExceededError`, `BudgetExceededError`, and `CancellationError` from RLM are now caught and converted to partial `DeepRecallResult` objects with the `partial_answer` preserved, instead of propagating as unhandled errors.
+- **Budget exhaustion synthesis** -- When any budget limit is hit (iterations, search calls, time, tokens, cost), the engine now makes a one-shot LLM call to synthesize a best-effort answer from retrieved sources instead of leaking raw REPL state into `.answer`.
+- **Async embedding_fn support** -- `BaseVectorStore` now accepts both sync and async `embedding_fn` callables. Async functions are auto-detected via `inspect.iscoroutinefunction()` and wrapped for synchronous execution. Fixes silent failure when async embedding services were passed directly.
+- **`filters` param on `query()`** -- New optional `filters: dict` parameter constrains all `search_db()` calls to matching metadata. The LLM can also pass additional filters at call time.
+- **`context_prefix` param on `query()`** -- New optional `context_prefix: str` parameter prepends contextual information (e.g., section name, rule ID) to the RLM prompt.
+- **`search_db()` now accepts `filters`** -- The REPL-injected `search_db(query, top_k, filters)` function now supports metadata filtering, forwarded to the search server.
 - **Live integration test suite** -- 16 new tests validating v0.4 features against real Redis on Docker and real dataclass round-trips.
 
 ### Changed
